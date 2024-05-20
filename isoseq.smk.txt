@@ -1,0 +1,234 @@
+# Get list of samples
+SAMPLE=$1
+
+# Set directories
+DATADIR=
+RESULTSDIR=isoseq_pipeline
+SCRIPTSDIR=/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/scripts
+
+# Make output directories
+ccs_reads
+if [ ! -d cluster ];then mkdir cluster ;fi
+if [ ! -d collapse ];then mkdir collapse ;fi
+if [ ! -d classify ];then mkdir classify ;fi
+if [ ! -d pbfusion ];then mkdir pbfusion ;fi
+if [ ! -d longgf ];then mkdir longgf ;fi
+genes_of_interest
+fusion/bam
+
+# Load environment
+source myconda
+mamba activate isoseq
+
+# Load references (config)
+ref: /data/khanlab3/gb_omics/Erica/software/genomes/gencode_human_28/GRCh38.primary_assembly.genome.fa
+gtf: /data/khanlab3/gb_omics/Erica/software/gencode/gencode.v28.annotation.gtf
+fusion_ref: ../fusion_genome/ewsr1_fli1.fa OR ewsr1_erg
+
+# Link samples from raw data directory with updated names
+
+# Rules
+
+rule cluster:
+####
+IsoSeq3 clustering
+###
+input:
+output:
+params:
+	THREADS=$((SLURM_CPUS_PER_TASK-4))
+shell:
+
+# Lima for primer removal
+lima ccs_reads/$SAMPLE\.ccs.bam primers.fasta cluster/$SAMPLE\.fl.bam --isoseq --peek-guess -j $THREADS
+
+# IsoSeq3 refine reads
+isoseq3 refine cluster/$SAMPLE\.fl.NEB_5p--NEB_Clontech_3p.bam primers.fasta cluster/$SAMPLE\.flnc.bam --require-polya -j $THREADS
+rm cluster/$SAMPLE\.fl.NEB_5p--NEB_Clontech_3p.bam
+rm cluster/$SAMPLE\.fl.NEB_5p--NEB_Clontech_3p.bam.pbi
+
+# IsoSeq3 cluster
+isoseq3 cluster cluster/$SAMPLE\.flnc.bam cluster/$SAMPLE\.clustered.bam --verbose --use-qvs -j $SLURM_CPUS_PER_TASK
+
+rule collapse:
+### 
+IsoSeq3 mapping and collapse
+###
+input:
+output:
+params:
+	REF=config['ref']
+shell:
+
+# Map transcripts to reference genome
+pbmm2 align --preset ISOSEQ --sort cluster/$SAMPLE\.clustered.hq.bam {params.ref} collapse/$SAMPLE\.hq.mapped.bam -j $SLURM_CPUS_PER_TASK
+
+# Collapse redundant transcripts into unique isoforms via exon structure
+isoseq3 collapse --do-not-collapse-extra-5exons collapse/$SAMPLE\.hq.mapped.bam collapse/$SAMPLE\.hq.collapsed.gff -j $SLURM_CPUS_PER_TASK
+
+rule sort_annotation:
+### 
+Sort and index genome annotation file
+###
+input:
+output:
+params:
+	GTF=config['gtf']
+shell:
+
+pigeon sort {params.gtf} -o gencode.v28.annotation.sorted.gtf
+pigeon index gencode.v28.annotation.sorted.gtf
+
+rule pigeon:
+###
+Pigeon classification and filtering
+###
+input:
+output:
+params:
+	REF=config['ref']
+	GTF="gencode.v28.annotation.sorted.gtf"
+shell:
+
+# Sort transcript GFF
+pigeon sort collapse/$SAMPLE\.hq.collapsed.gff -o classify/$SAMPLE\.sorted.gff
+
+# Classify isoforms
+pigeon classify classify/$SAMPLE\.sorted.gff {params.gtf} {params.ref} -j $SLURM_CPUS_PER_TASK -d "classify" -o $SAMPLE \
+    --gene-id --fl collapse/$SAMPLE\.hq.collapsed.abundance.txt
+
+# Filter isoforms
+pigeon filter classify/$SAMPLE\_classification.txt --isoforms classify/$SAMPLE\.sorted.gff -j $SLURM_CPUS_PER_TASK
+
+# Report gene saturation
+pigeon report classify/$SAMPLE\_classification.filtered_lite_classification.txt classify/$SAMPLE\.saturation.txt -j $SLURM_CPUS_PER_TASK
+
+rule isoseq_stats:
+input:
+output:
+params:
+shell:
+
+isoseq_stats.R
+
+rule pbfusion:
+### 
+PacBio fusion detection
+###
+input:
+output:
+params:
+	REF=config['ref']
+	GTF="gencode.v28.annotation.sorted.gtf"
+shell:
+
+# Detect fusions
+pbfusion discover -c 5 -s 10000 -M 0 -t $SLURM_CPUS_PER_TASK --gtf {params.gtf} --output-prefix pbfusion/$SAMPLE pbfusion/$SAMPLE\.hq.collapsed.bam
+
+rule longgf:
+### 
+LongGF fusion detection
+###
+input:
+output:
+params:
+	GTF=config['gtf']
+shell:
+
+# Sort bam files by position
+samtools sort -n -o longgf/$SAMPLE\.hq.sorted.bam collapse/$SAMPLE\.hq.mapped.bam
+
+# Detect fusions
+LongGF longgf/$SAMPLE\.hq.sorted.bam {params.gtf} 100 50 100 > longgf/$SAMPLE\.log
+
+rule map_fusion:
+###
+Map fusion isoforms to custom genome
+Usage: bash map_fusion_isoforms.sh [sample] [Custom fusion reference]
+Upstream: run PBFusion on IsoSeq clustered transcripts (HQ), get list of EWSR1 fusion transcript IDs
+Input: sample name, custom fusion genome (fasta)
+Output: fusion isoforms mapped to fusion genome (sorted, indexed bam)
+###
+input:
+output:
+envmodules:
+	ml minimap2
+	ml samtools
+	ml seqtk
+params:
+	ref=config['fusion_ref']
+	FASTA=cluster/$SAMPLE\.clustered.hq.fasta.gz # IsoSeq clustered HQ fasta
+	IDS=fusion/bam/$SAMPLE\_ewsr1.list # Fusion isoform IDs
+	GENOME=$(basename {params.ref} .fa) # Fusion genome
+shell:
+
+# Filter fasta file based on isoform ID
+seqtk subseq $FASTA $IDS > fusion/bam/$SAMPLE\.fasta
+
+# Map fasta to genome using minimap2
+minimap2 -ax splice -t $SLURM_CPUS_PER_TASK -uf --secondary=no -C5 {params.ref} fusion/bam/$SAMPLE\.fasta | samtools view -b -o fusion/bam/$SAMPLE\_$GENOME\.bam
+
+# Sort and index
+samtools sort -o fusion/bam/$SAMPLE\_$GENOME\.sorted.bam fusion/bam/$SAMPLE\_$GENOME\.bam
+samtools index fusion/bam/$SAMPLE\_$GENOME\.sorted.bam
+rm fusion/bam/$SAMPLE\_$GENOME\.bam
+
+rule convert_majiq:
+input:
+output:
+params:
+shell:
+# Convert GFF to GTF using gffread (see OneNote)
+
+convert_gtf_majiq.R
+
+rule pull_genes:
+###
+Usage: bash get_gene_isoform.sh [Gene name of interest] [Gene ID of interest] [Sample]
+
+EWSR1 - "ENSG00000182944.17"
+FLI1 - "ENSG00000151702.16"
+CD99 - "ENSG00000002586.19"
+PURPL - "ENSG00000250337.5"
+###
+
+input:
+	GENE=$1 # Gene of interest
+	ID=$2
+	SAMPLE=$3
+output:
+envmodules:
+	ml minimap2
+	ml samtools
+	ml seqtk
+	ml R
+params:
+	REF=config['ref']
+shell:
+
+# Get full fasta headers per isoform
+FASTA="collapse/$SAMPLE.hq.collapsed.fasta"
+
+# Get pigeon classifications and GFF for gene of interest / sample
+Rscript SCRIPTSDIR/pull_gff_classification.R $GENE $ID $SAMPLE
+
+while read line
+	do 
+		grep $line"|" $FASTA >> genes_of_interest/$SAMPLE\.$GENE\.tmp
+	done < <(cut -f1 genes_of_interest/$SAMPLE\.$GENE\_classification.filtered_lite_classification.txt)
+sed -e 's/^>//' genes_of_interest/$SAMPLE\.$GENE\.tmp > genes_of_interest/$SAMPLE\.$GENE\.list
+rm genes_of_interest/$SAMPLE\.$GENE\.tmp
+
+# Filter fasta based on isoform ID
+seqtk subseq $FASTA genes_of_interest/$SAMPLE\.$GENE\.list > genes_of_interest/$SAMPLE\.$GENE\.fasta
+rm genes_of_interest/$SAMPLE\.$GENE\.list
+
+# Map fasta to genome using minimap2
+minimap2 -ax splice -t $SLURM_CPUS_PER_TASK -uf --secondary=no -C5 {params.ref} genes_of_interest/$SAMPLE\.$GENE\.fasta | samtools view -b -o genes_of_interest/$SAMPLE\.$GENE\.bam
+
+# Sort and index bam
+samtools sort -o genes_of_interest/$SAMPLE\.$GENE\.sorted.bam -@ $SLURM_CPUS_PER_TASK genes_of_interest/$SAMPLE\.$GENE\.bam
+samtools index genes_of_interest/$SAMPLE\.$GENE\.sorted.bam
+rm genes_of_interest/$SAMPLE\.$GENE\.bam
+
+pull_gff_classification.R
