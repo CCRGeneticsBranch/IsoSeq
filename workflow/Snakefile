@@ -1,0 +1,174 @@
+# Import python libraries
+import os
+from os.path import join
+import itertools
+import pandas as pd
+
+# Set directories
+WORKDIR = config["workdir"]
+RESULTSDIR = join(WORKDIR,"results")
+SCRIPTSDIR = config["scriptsdir"]
+
+# Get list of samples
+manifest = pd.read_table(config["manifest"])
+SAMPLES =  manifest['Sample']
+CCS = dict(zip(manifest['Sample'], manifest['CCS']))
+
+# Define tools
+with open(config["tools"]) as f:
+    TOOLS = yaml.safe_load(f)
+
+# Define resources per rule
+with open(config["cluster"]) as f:
+    CLUSTER = yaml.safe_load(f)
+
+getthreads=lambda rname:int(CLUSTER[rname]["threads"]) if rname in CLUSTER and "threads" in CLUSTER[rname] else int(CLUSTER["__default__"]["threads"])
+getmemg=lambda rname:CLUSTER[rname]["mem"] if rname in CLUSTER and "mem" in CLUSTER[rname] else CLUSTER["__default__"]["mem"]
+
+# Define genomes
+gencode_version = config['gencode_version']
+fusion_genome = config['fusion_genome']
+
+#include: "rules/fusions.smk"
+#include: "rules/gene_selection.smk"
+
+# Rules
+
+localrules: link_css
+
+rule all:
+    input:
+        # Link CCS
+        expand(join(RESULTSDIR,"ccs_reads","{samples}.ccs.bam"),samples=SAMPLES),
+        
+        # Sort annotation
+        join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf"),
+        
+        # Cluster
+        expand(join(RESULTSDIR,"cluster","{samples}.fl.bam"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"cluster","{samples}.flnc.bam"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"cluster","{samples}.clustered.bam"),samples=SAMPLES)
+        
+        # Collapse
+        expand(join(RESULTSDIR,"collapse","{samples}.hq.mapped.bam"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"collapse","{samples}.hq.collapsed.gff"),samples=SAMPLES)
+        
+        # Pigeon
+        expand(join(RESULTSDIR,"classify","{samples}.sorted.gff"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"classify","{samples}_classification.txt"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"classify","{samples}_classification.filtered_lite_classification.txt"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"classify","{samples}.saturation.txt"),samples=SAMPLES)
+
+rule link_ccs:
+    """
+    Link samples from raw data directory with updated names
+    """
+    input: 
+        bam=CCS[{sample}],
+        pbi=CCS[{sample}].pbi
+    output:
+        bam=join(RESULTSDIR,"ccs_reads","{sample}.ccs.bam"),
+        pbi=join(RESULTSDIR,"ccs_reads","{sample}.ccs.bam.pbi")
+    shell:
+        """
+        os.symlink({input.bam},{output.bam})
+        os.symlink({input.pbi},{output.pbi})
+        """
+
+rule sort_annotation:
+    """ 
+    Sort and index genome annotation file
+    """
+    output:
+	    sorted_gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf")
+    params:
+	    gtf=config[{gencode_version}]['gtf']
+    shell:
+        """
+		pigeon sort {params.gtf} -o {output.sorted_gtf}
+		pigeon index {output.sorted_gtf}
+	    """
+
+rule cluster:
+    """
+    IsoSeq3 clustering
+    """
+    input:
+        ccs=join(RESULTSDIR,"ccs_reads","{sample}.ccs.bam")
+    output:
+        fl_primer=temp(join(RESULTSDIR,"cluster","{sample}.fl.NEB_5p--NEB_Clontech_3p.bam")),
+		fl_primer_index=temp(join(RESULTSDIR,"cluster","{sample}.fl.NEB_5p--NEB_Clontech_3p.bam.pbi")),
+		fl=join(RESULTSDIR,"cluster","{sample}.fl.bam"),
+	    flnc=join(RESULTSDIR,"cluster","{sample}.flnc.bam"),
+	    clustered=join(RESULTSDIR,"cluster","{sample}.clustered.bam")
+    params:
+		primers=config['primers']
+    threads:
+        getthreads("cluster")-4
+    shell:
+        """
+	    # Lima for primer removal
+	    lima {input.ccs} {params.primers} {output.fl} --isoseq --peek-guess -j {threads}
+	    
+	    # IsoSeq3 refine reads
+	    isoseq3 refine {output.fl_primer} {params.primers} {output.flnc} --require-polya -j {threads}
+	    	    
+	    # IsoSeq3 cluster
+	    isoseq3 cluster {output.flnc} {output.clustered} --verbose --use-qvs -j {threads}
+		"""
+
+rule collapse:
+    """ 
+    IsoSeq3 mapping and collapse
+    """
+    input:
+	    clustered_hq=join(RESULTSDIR,"cluster","{sample}.clustered.hq.bam")
+    output:
+		collapse=join(RESULTSDIR,"collapse","{sample}.hq.mapped.bam"),
+        gff=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.gff")
+    params:
+	    ref=config[{gencode_version}]['ref'],
+    threads: 
+        getthreads("collapse")
+    shell:
+        """
+        # Map transcripts to reference genome
+        pbmm2 align --preset ISOSEQ --sort {input.clustered_hq} {params.ref} {output.collapse} -j {threads}
+    
+        # Collapse redundant transcripts into unique isoforms via exon structure
+        isoseq3 collapse --do-not-collapse-extra-5exons {output.collapse} {output.gff} -j {threads}
+	    """
+
+rule pigeon:
+    """
+    Pigeon classification and filtering
+    """
+    input:
+	    gff=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.gff"),
+		abundance=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.abundance.txt")
+    output:
+	    gff_sorted=join(RESULTSDIR,"classify","{sample}.sorted.gff"),
+		classification=join(RESULTSDIR,"classify","{sample}_classification.txt"),
+		classification_filtered=join(RESULTSDIR,"classify","{sample}_classification.filtered_lite_classification.txt"),
+		saturation=join(RESULTSDIR,"classify","{sample}.saturation.txt")
+    params:
+	    ref=config[{gencode_version}]['ref'],
+	    gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf"),
+		sample="{sample}"
+    threads: 
+        getthreads("pigeon")
+    shell:
+        """
+        # Sort transcript GFF
+        pigeon sort {input.gff} -o {output.gff_sorted}
+        
+        # Classify isoforms
+        pigeon classify {output.gff_sorted} {params.gtf} {params.ref} -j {threads} -d "classify" -o {params.sample} \
+            --gene-id --fl {input.abundance}
+
+        # Filter isoforms
+        pigeon filter {output.classification} --isoforms {output.gff_sorted} -j {threads}
+
+        # Report gene saturation
+        pigeon report {output.classification_filtered} {output.saturation} -j {threads}
+        """
