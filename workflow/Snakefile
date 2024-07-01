@@ -2,6 +2,7 @@
 import os
 from os.path import join
 import itertools
+import yaml
 import pandas as pd
 
 # Set directories
@@ -11,7 +12,7 @@ SCRIPTSDIR = config["scriptsdir"]
 
 # Get list of samples
 manifest = pd.read_table(config["manifest"])
-SAMPLES =  manifest['Sample']
+SAMPLES =  manifest['Sample'].unique()
 CCS = dict(zip(manifest['Sample'], manifest['CCS']))
 
 # Define tools
@@ -47,11 +48,11 @@ rule all:
         # Cluster
         expand(join(RESULTSDIR,"cluster","{samples}.fl.bam"),samples=SAMPLES),
         expand(join(RESULTSDIR,"cluster","{samples}.flnc.bam"),samples=SAMPLES),
-        expand(join(RESULTSDIR,"cluster","{samples}.clustered.bam"),samples=SAMPLES)
+        expand(join(RESULTSDIR,"cluster","{samples}.clustered.bam"),samples=SAMPLES),
         
         # Collapse
         expand(join(RESULTSDIR,"collapse","{samples}.hq.mapped.bam"),samples=SAMPLES),
-        expand(join(RESULTSDIR,"collapse","{samples}.hq.collapsed.gff"),samples=SAMPLES)
+        expand(join(RESULTSDIR,"collapse","{samples}.hq.collapsed.gff"),samples=SAMPLES),
         
         # Pigeon
         expand(join(RESULTSDIR,"classify","{samples}.sorted.gff"),samples=SAMPLES),
@@ -80,14 +81,14 @@ rule sort_annotation:
     Sort and index genome annotation file
     """
     output:
-	    sorted_gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf")
+        sorted_gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf")
     params:
-	    gtf=config[{gencode_version}]['gtf']
+        gtf=config[{gencode_version}]['gtf']
     shell:
         """
-		pigeon sort {params.gtf} -o {output.sorted_gtf}
-		pigeon index {output.sorted_gtf}
-	    """
+        pigeon sort {params.gtf} -o {output.sorted_gtf}
+        pigeon index {output.sorted_gtf}
+        """
 
 rule cluster:
     """
@@ -97,37 +98,37 @@ rule cluster:
         ccs=join(RESULTSDIR,"ccs_reads","{sample}.ccs.bam")
     output:
         fl_primer=temp(join(RESULTSDIR,"cluster","{sample}.fl.NEB_5p--NEB_Clontech_3p.bam")),
-		fl_primer_index=temp(join(RESULTSDIR,"cluster","{sample}.fl.NEB_5p--NEB_Clontech_3p.bam.pbi")),
-		fl=join(RESULTSDIR,"cluster","{sample}.fl.bam"),
-	    flnc=join(RESULTSDIR,"cluster","{sample}.flnc.bam"),
-	    clustered=join(RESULTSDIR,"cluster","{sample}.clustered.bam")
+        fl_primer_index=temp(join(RESULTSDIR,"cluster","{sample}.fl.NEB_5p--NEB_Clontech_3p.bam.pbi")),
+        fl=join(RESULTSDIR,"cluster","{sample}.fl.bam"),
+        flnc=join(RESULTSDIR,"cluster","{sample}.flnc.bam"),
+        clustered=join(RESULTSDIR,"cluster","{sample}.clustered.bam")
     params:
-		primers=config['primers']
+        primers=config['primers']
     threads:
         getthreads("cluster")-4
     shell:
         """
-	    # Lima for primer removal
-	    lima {input.ccs} {params.primers} {output.fl} --isoseq --peek-guess -j {threads}
-	    
-	    # IsoSeq3 refine reads
-	    isoseq3 refine {output.fl_primer} {params.primers} {output.flnc} --require-polya -j {threads}
-	    	    
-	    # IsoSeq3 cluster
-	    isoseq3 cluster {output.flnc} {output.clustered} --verbose --use-qvs -j {threads}
-		"""
+        # Lima for primer removal
+        lima {input.ccs} {params.primers} {output.fl} --isoseq --peek-guess -j {threads}
+        
+        # IsoSeq3 refine reads
+        isoseq3 refine {output.fl_primer} {params.primers} {output.flnc} --require-polya -j {threads}
+                
+        # IsoSeq3 cluster
+        isoseq3 cluster {output.flnc} {output.clustered} --verbose --use-qvs -j {threads}
+        """
 
 rule collapse:
     """ 
     IsoSeq3 mapping and collapse
     """
     input:
-	    clustered_hq=join(RESULTSDIR,"cluster","{sample}.clustered.hq.bam")
+        clustered_hq=join(RESULTSDIR,"cluster","{sample}.clustered.hq.bam")
     output:
-		collapse=join(RESULTSDIR,"collapse","{sample}.hq.mapped.bam"),
+        collapse=join(RESULTSDIR,"collapse","{sample}.hq.mapped.bam"),
         gff=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.gff")
     params:
-	    ref=config[{gencode_version}]['ref'],
+        ref=config[{gencode_version}]['ref'],
     threads: 
         getthreads("collapse")
     shell:
@@ -137,24 +138,24 @@ rule collapse:
     
         # Collapse redundant transcripts into unique isoforms via exon structure
         isoseq3 collapse --do-not-collapse-extra-5exons {output.collapse} {output.gff} -j {threads}
-	    """
+        """
 
 rule pigeon:
     """
     Pigeon classification and filtering
     """
     input:
-	    gff=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.gff"),
-		abundance=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.abundance.txt")
+        gff=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.gff"),
+        abundance=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.abundance.txt")
     output:
-	    gff_sorted=join(RESULTSDIR,"classify","{sample}.sorted.gff"),
-		classification=join(RESULTSDIR,"classify","{sample}_classification.txt"),
-		classification_filtered=join(RESULTSDIR,"classify","{sample}_classification.filtered_lite_classification.txt"),
-		saturation=join(RESULTSDIR,"classify","{sample}.saturation.txt")
+        gff_sorted=join(RESULTSDIR,"classify","{sample}.sorted.gff"),
+        classification=join(RESULTSDIR,"classify","{sample}_classification.txt"),
+        classification_filtered=join(RESULTSDIR,"classify","{sample}_classification.filtered_lite_classification.txt"),
+        saturation=join(RESULTSDIR,"classify","{sample}.saturation.txt")
     params:
-	    ref=config[{gencode_version}]['ref'],
-	    gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf"),
-		sample="{sample}"
+        ref=config[{gencode_version}]['ref'],
+        gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf"),
+        sample="{sample}"
     threads: 
         getthreads("pigeon")
     shell:

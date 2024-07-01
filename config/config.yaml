@@ -1,27 +1,27 @@
 # References
 
 workdir:
-    /data/khanlab3/gb_omics/projects/caplen/ccrgb_13/isoseq_test/
+    WORKDIR
 scriptsdir:
-    /data/khanlab3/gb_omics/Erica/software/IsoSeq/workflow/scripts/
+    PIPELINE_HOME/workflow/scripts/
 manifest:
-    /data/khanlab3/gb_omics/Erica/software/IsoSeq/resources/samples.tsv
+    WORKDIR/config/samples.tsv
 tools:
-    /data/khanlab3/gb_omics/Erica/software/IsoSeq/resources/tools.yaml
+    PIPELINE_HOME/resources/tools.yaml
 cluster:
-    /data/khanlab3/gb_omics/Erica/software/IsoSeq/resources/cluster.yaml
+    PIPELINE_HOME/resources/cluster.yaml
 
 primers: 
-    /data/khanlab3/gb_omics/Erica/software/IsoSeq/resources/primers.fasta
+    PIPELINE_HOME/resources/primers.fasta
 
 # Reference by genome annotation version
 gencode_version: v28
 
 v28:
     ref:
-        /data/khanlab3/gb_omics/resources/genomes/gencode_human_28/GRCh38.primary_assembly.genome.fa
+        /vf/users/khanlab3/gb_omics/resources/genomes/gencode_human_28/GRCh38.primary_assembly.genome.fa
     gtf:
-        /data/khanlab3/gb_omics/resources/gencode/gencode.v28.annotation.gtf
+        /vf/users/khanlab3/gb_omics/resources/gencode/gencode.v28.annotation.gtf
 
 # Custom fusion reference
 # Options: ewsr1_fli1, ewsr1_erg
@@ -29,7 +29,7 @@ fusion_genome: ewsr1_fli1
 
 ewsr1_fli1:
     fusion_ref:
-        /data/khanlab3/gb_omics/Erica/software/IsoSeq/resources/fusion_genome/ewsr1_fli1.fa
+        PIPELINE_HOME/resources/fusion_genome/ewsr1_fli1.fa
 ewsr1_erg:
     fusion_ref:
-        /data/khanlab3/gb_omics/Erica/software/IsoSeq/resources/fusion_genome/ewsr1_erg.fa
+        PIPELINE_HOME/resources/fusion_genome/ewsr1_erg.fa
