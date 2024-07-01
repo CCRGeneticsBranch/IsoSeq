@@ -1,8 +1,10 @@
 # Cluster resources per rule
 __default__:
     gres: lscratch:96
-    mem: 8g
+    mem: 4g
     threads: 2
+    time: 0:30:00
+    partition: "norm,ccr"
     name: "{rule}.{wildcards}"
     output: "logs/{rule}.${{SLURM_JOBID}}.%j.{wildcards}.out"
     error: "logs/{rule}.${{SLURM_JOBID}}.%j.{wildcards}.err"
@@ -10,6 +12,7 @@ __default__:
 cluster:
     mem: 100g
     threads: 24
+    time: 2:00:00
     gres: lscratch:500
 
 collapse:
@@ -25,3 +28,8 @@ pigeon:
 pbfusion:
     threads: 4
     time: 15:00
+
+pull_genes:
+    threads: 24
+    mem: 24g
+    time: 10:00

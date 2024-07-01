@@ -24,8 +24,7 @@ v28:
         /vf/users/khanlab3/gb_omics/resources/gencode/gencode.v28.annotation.gtf
 
 # Custom fusion reference
-# Options: ewsr1_fli1, ewsr1_erg
-fusion_genome: ewsr1_fli1
+fusion_genome: [ewsr1_fli1, ewsr1_erg]
 
 ewsr1_fli1:
     fusion_ref:
@@ -33,3 +32,14 @@ ewsr1_fli1:
 ewsr1_erg:
     fusion_ref:
         PIPELINE_HOME/resources/fusion_genome/ewsr1_erg.fa
+
+# Genes of interest
+genes_of_interest: [EWSR1, FLI1]
+EWSR1: 
+    id: "ENSG00000182944.17"
+FLI1: 
+    id: "ENSG00000151702.16"
+CD99: 
+    id: "ENSG00000002586.19"
+PURPL: 
+    id: "ENSG00000250337.5"

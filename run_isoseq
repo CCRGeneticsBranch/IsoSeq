@@ -211,7 +211,7 @@ function set_singularity_binds(){
   _exe_in_path dos2unix
   echo "$PIPELINE_HOME" > ${WORKDIR}/tmp1
   echo "$WORKDIR" >> ${WORKDIR}/tmp1
-  grep -o '\/.*' <(cat ${WORKDIR}/config/config.yaml ${WORKDIR}/samples.tsv)| \
+  grep -o '\/.*' <(cat ${WORKDIR}/config/config.yaml ${WORKDIR}/config/samples.tsv)| \
     dos2unix | \
     tr '\t' '\n' | \
     grep -v ' \|\/\/' | \

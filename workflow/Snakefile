@@ -28,14 +28,15 @@ getmemg=lambda rname:CLUSTER[rname]["mem"] if rname in CLUSTER and "mem" in CLUS
 
 # Define genomes
 gencode_version = config['gencode_version']
-fusion_genome = config['fusion_genome']
+FUSION_GENOME = config['fusion_genome']
+GENES = config['genes_of_interest']
 
-#include: "rules/fusions.smk"
-#include: "rules/gene_selection.smk"
+include: "rules/fusions.smk"
+include: "rules/gene_selection.smk"
 
 # Rules
 
-localrules: link_css
+localrules: link_ccs
 
 rule all:
     input:
@@ -43,12 +44,13 @@ rule all:
         expand(join(RESULTSDIR,"ccs_reads","{samples}.ccs.bam"),samples=SAMPLES),
         
         # Sort annotation
-        join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf"),
+        join(RESULTSDIR,f"gencode.{gencode_version}.annotation.sorted.gtf"),
         
         # Cluster
-        expand(join(RESULTSDIR,"cluster","{samples}.fl.bam"),samples=SAMPLES),
         expand(join(RESULTSDIR,"cluster","{samples}.flnc.bam"),samples=SAMPLES),
         expand(join(RESULTSDIR,"cluster","{samples}.clustered.bam"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"cluster","{samples}.clustered.hq.bam"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"cluster","{samples}.clustered.hq.fasta.gz"),samples=SAMPLES),
         
         # Collapse
         expand(join(RESULTSDIR,"collapse","{samples}.hq.mapped.bam"),samples=SAMPLES),
@@ -57,23 +59,42 @@ rule all:
         # Pigeon
         expand(join(RESULTSDIR,"classify","{samples}.sorted.gff"),samples=SAMPLES),
         expand(join(RESULTSDIR,"classify","{samples}_classification.txt"),samples=SAMPLES),
-        expand(join(RESULTSDIR,"classify","{samples}_classification.filtered_lite_classification.txt"),samples=SAMPLES),
-        expand(join(RESULTSDIR,"classify","{samples}.saturation.txt"),samples=SAMPLES)
+        expand(join(RESULTSDIR,"classify","{samples}.classification.filtered_lite_classification.txt"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"classify","{samples}.saturation.txt"),samples=SAMPLES),
+
+        # PBFusion
+        expand(join(RESULTSDIR,"pbfusion","{samples}.breakpoints.groups.bed"),samples=SAMPLES),
+
+        # LongGF
+        expand(join(RESULTSDIR,"longgf","{samples}.hq.sorted.bam"),samples=SAMPLES),
+
+        # Map fusions
+        expand(join(RESULTSDIR,"fusion","{samples}_ewsr1.list"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"fusion","{samples}_ewsr1.fasta"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"fusion","{samples}.{fusion_genome}.sorted.bam"),samples=SAMPLES,fusion_genome=FUSION_GENOME),
+
+        # Genes of interest
+        expand(join(RESULTSDIR,"genes_of_interest","{samples}.{genes}.classification.filtered_lite_classification.txt"),samples=SAMPLES,genes=GENES),
+        expand(join(RESULTSDIR,"genes_of_interest","{samples}.{genes}.fasta"),samples=SAMPLES,genes=GENES),
+        expand(join(RESULTSDIR,"genes_of_interest","{samples}.{genes}.sorted.bam"),samples=SAMPLES,genes=GENES),
+
+        # Majiq conversion
+        expand(join(RESULTSDIR,"majiq","{samples}.sorted.filtered_lite.gtf"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"majiq","{samples}.sorted.filtered_lite.attributes.gtf"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"majiq","{samples}.counts.tsv"),samples=SAMPLES)
 
 rule link_ccs:
     """
     Link samples from raw data directory with updated names
     """
     input: 
-        bam=CCS[{sample}],
-        pbi=CCS[{sample}].pbi
+        bam=lambda wildcards: f"{CCS[wildcards.sample]}",
     output:
-        bam=join(RESULTSDIR,"ccs_reads","{sample}.ccs.bam"),
-        pbi=join(RESULTSDIR,"ccs_reads","{sample}.ccs.bam.pbi")
+        bam=join(RESULTSDIR,"ccs_reads","{sample}.ccs.bam")
     shell:
         """
-        os.symlink({input.bam},{output.bam})
-        os.symlink({input.pbi},{output.pbi})
+        ln -s {input.bam} {output.bam}
+        ln -s {input.bam}.pbi {output.bam}.pbi
         """
 
 rule sort_annotation:
@@ -83,7 +104,7 @@ rule sort_annotation:
     output:
         sorted_gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf")
     params:
-        gtf=config[{gencode_version}]['gtf']
+        gtf=config[gencode_version]['gtf']
     shell:
         """
         pigeon sort {params.gtf} -o {output.sorted_gtf}
@@ -99,17 +120,19 @@ rule cluster:
     output:
         fl_primer=temp(join(RESULTSDIR,"cluster","{sample}.fl.NEB_5p--NEB_Clontech_3p.bam")),
         fl_primer_index=temp(join(RESULTSDIR,"cluster","{sample}.fl.NEB_5p--NEB_Clontech_3p.bam.pbi")),
-        fl=join(RESULTSDIR,"cluster","{sample}.fl.bam"),
         flnc=join(RESULTSDIR,"cluster","{sample}.flnc.bam"),
-        clustered=join(RESULTSDIR,"cluster","{sample}.clustered.bam")
+        clustered=join(RESULTSDIR,"cluster","{sample}.clustered.bam"),
+        clustered_hq=join(RESULTSDIR,"cluster","{sample}.clustered.hq.bam"),
+        clustered_fasta=join(RESULTSDIR,"cluster","{sample}.clustered.hq.fasta.gz")
     params:
-        primers=config['primers']
+        primers=config['primers'],
+        fl=join(RESULTSDIR,"cluster","{sample}.fl.bam")
     threads:
         getthreads("cluster")-4
     shell:
         """
         # Lima for primer removal
-        lima {input.ccs} {params.primers} {output.fl} --isoseq --peek-guess -j {threads}
+        lima {input.ccs} {params.primers} {params.fl} --isoseq --peek-guess -j {threads}
         
         # IsoSeq3 refine reads
         isoseq3 refine {output.fl_primer} {params.primers} {output.flnc} --require-polya -j {threads}
@@ -126,9 +149,11 @@ rule collapse:
         clustered_hq=join(RESULTSDIR,"cluster","{sample}.clustered.hq.bam")
     output:
         collapse=join(RESULTSDIR,"collapse","{sample}.hq.mapped.bam"),
-        gff=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.gff")
+        gff=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.gff"),
+        fasta=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.fasta"),
+        abundance=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.abundance.txt")
     params:
-        ref=config[{gencode_version}]['ref'],
+        ref=config[gencode_version]['ref'],
     threads: 
         getthreads("collapse")
     shell:
@@ -150,11 +175,12 @@ rule pigeon:
     output:
         gff_sorted=join(RESULTSDIR,"classify","{sample}.sorted.gff"),
         classification=join(RESULTSDIR,"classify","{sample}_classification.txt"),
-        classification_filtered=join(RESULTSDIR,"classify","{sample}_classification.filtered_lite_classification.txt"),
+        gff_filtered=join(RESULTSDIR,"classify","{sample}.sorted.filtered_lite.gff"),
+        classification_filtered=join(RESULTSDIR,"classify","{sample}.classification.filtered_lite_classification.txt"),
         saturation=join(RESULTSDIR,"classify","{sample}.saturation.txt")
     params:
-        ref=config[{gencode_version}]['ref'],
-        gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf"),
+        ref=config[gencode_version]['ref'],
+        gtf=join(RESULTSDIR,f"gencode.{gencode_version}.annotation.sorted.gtf"),
         sample="{sample}"
     threads: 
         getthreads("pigeon")
