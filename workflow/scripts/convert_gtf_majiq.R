@@ -6,16 +6,18 @@ library(stringr)
 
 # Read in sample name
 args = commandArgs(trailingOnly=TRUE)
+gtf_file = args[1]
+classification_file = args[2]
+out_gtf = args[3]
+out_counts = args[4]
 sample = args[1]
-#sample = "Sample_6_FLI1_HEK293T"
 
 # Read in GTF
-gtf = read.table(paste("classify/",sample,".sorted.filtered_lite.gtf",sep=""),sep='\t',quote="")
+gtf = read.table(gtf_file,sep='\t',quote="")
 print("Read GTF")
 
 # Read in classification table
-classification = read.table(paste("classify/",sample,
-                         "_classification.filtered_lite_classification.txt",sep=""),sep='\t',header=TRUE)
+classification = read.table(classification_file,sep='\t',header=TRUE)
 classification = classification[,c("isoform","structural_category","associated_gene","associated_transcript",
                                    "FL","fl_assoc")]
 print("Read classification table")
@@ -34,10 +36,10 @@ gtf$attribute = ifelse(gtf$V3 == "exon",paste(gtf$attribute,";",sep=""),gtf$attr
 
 # Write out gtf
 write.table(gtf[,c("V1","V2","V3","V4","V5","V6","V7","V8","attribute")],
-            file=paste("classify/",sample,".sorted.filtered_lite.attributes.gtf",sep=""),
+            file=out_gtf,
             sep='\t',col.names=FALSE,row.names=FALSE,quote=FALSE)
 
 # Write out feature counts
 counts = classification[,c("isoform","fl_assoc")]
-write.table(counts,file=paste("classify/",sample,".counts.tsv",sep=""),
+write.table(counts,file=out_counts,
             sep='\t',row.names=FALSE,quote=FALSE)

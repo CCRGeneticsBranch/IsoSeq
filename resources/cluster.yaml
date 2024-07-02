@@ -4,32 +4,26 @@ __default__:
     mem: 4g
     threads: 2
     time: 0:30:00
-    partition: "norm,ccr"
+    partition: quick
     name: "{rule}.{wildcards}"
     output: "logs/{rule}.${{SLURM_JOBID}}.%j.{wildcards}.out"
     error: "logs/{rule}.${{SLURM_JOBID}}.%j.{wildcards}.err"
 
 cluster:
-    mem: 100g
+    mem: 200g
     threads: 24
-    time: 2:00:00
+    time: 8:00:00
     gres: lscratch:500
+    partition: "norm,ccr"
 
 collapse:
-    mem: 48g
+    mem: 96g
     threads: 24
-    partition: quick
 
 pigeon:
     mem: 8g
-    threads: 2
-    partition: quick
-
-pbfusion:
     threads: 4
-    time: 15:00
 
 pull_genes:
     threads: 24
     mem: 24g
-    time: 10:00

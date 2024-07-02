@@ -36,7 +36,7 @@ include: "rules/gene_selection.smk"
 
 # Rules
 
-localrules: link_ccs
+localrules: link_ccs, sort_annotation, convert_majiq
 
 rule all:
     input:
@@ -59,7 +59,7 @@ rule all:
         # Pigeon
         expand(join(RESULTSDIR,"classify","{samples}.sorted.gff"),samples=SAMPLES),
         expand(join(RESULTSDIR,"classify","{samples}_classification.txt"),samples=SAMPLES),
-        expand(join(RESULTSDIR,"classify","{samples}.classification.filtered_lite_classification.txt"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"classify","{samples}_classification.filtered_lite_classification.txt"),samples=SAMPLES),
         expand(join(RESULTSDIR,"classify","{samples}.saturation.txt"),samples=SAMPLES),
 
         # PBFusion
@@ -176,12 +176,13 @@ rule pigeon:
         gff_sorted=join(RESULTSDIR,"classify","{sample}.sorted.gff"),
         classification=join(RESULTSDIR,"classify","{sample}_classification.txt"),
         gff_filtered=join(RESULTSDIR,"classify","{sample}.sorted.filtered_lite.gff"),
-        classification_filtered=join(RESULTSDIR,"classify","{sample}.classification.filtered_lite_classification.txt"),
+        classification_filtered=join(RESULTSDIR,"classify","{sample}_classification.filtered_lite_classification.txt"),
         saturation=join(RESULTSDIR,"classify","{sample}.saturation.txt")
     params:
         ref=config[gencode_version]['ref'],
         gtf=join(RESULTSDIR,f"gencode.{gencode_version}.annotation.sorted.gtf"),
-        sample="{sample}"
+        sample="{sample}",
+        outdir=join(RESULTSDIR,"classify")
     threads: 
         getthreads("pigeon")
     shell:
@@ -190,7 +191,7 @@ rule pigeon:
         pigeon sort {input.gff} -o {output.gff_sorted}
         
         # Classify isoforms
-        pigeon classify {output.gff_sorted} {params.gtf} {params.ref} -j {threads} -d "classify" -o {params.sample} \
+        pigeon classify {output.gff_sorted} {params.gtf} {params.ref} -j {threads} -d {params.outdir} -o {params.sample} \
             --gene-id --fl {input.abundance}
 
         # Filter isoforms
@@ -198,4 +199,25 @@ rule pigeon:
 
         # Report gene saturation
         pigeon report {output.classification_filtered} {output.saturation} -j {threads}
+        """
+
+rule convert_majiq:
+    input:
+        gff=join(RESULTSDIR,"classify","{sample}.sorted.filtered_lite.gff"),
+        classification=join(RESULTSDIR,"classify","{sample}_classification.filtered_lite_classification.txt"),
+    output:
+        gtf=join(RESULTSDIR,"majiq","{sample}.sorted.filtered_lite.gtf"),
+        gtf_attr=join(RESULTSDIR,"majiq","{sample}.sorted.filtered_lite.attributes.gtf"),
+        counts=join(RESULTSDIR,"majiq","{sample}.counts.tsv")
+    envmodules:
+        TOOLS["R"]
+    params:
+        gffread=config['gffread'],
+        rscript=join(SCRIPTSDIR,"convert_gtf_majiq.R")
+    shell:
+        """
+        # Convert GFF to GTF using gffread
+        {params.gffread} -E {input.gff} -T -o {output.gtf}
+
+        Rscript {params.rscript} {output.gtf} {input.classification} {output.gtf_attr} {output.counts}
         """

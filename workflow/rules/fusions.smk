@@ -1,3 +1,5 @@
+localrules: pbfusion, longgf, pull_fusion, map_fusion
+
 rule pbfusion:
     """
     PacBio fusion detection
@@ -14,7 +16,7 @@ rule pbfusion:
     shell:
         """
         # Detect fusions
-        pbfusion discover -c 5 -s 10000 -M 0 -t {threads} --gtf {params.gtf} --output-prefix {params.outdir} {input.collapse}
+        pbfusion discover -c 5 -s 10000 -M 0 -t {threads} --bam {input.collapse} --gtf {params.gtf} --output-prefix {params.outdir}
         """
 
 rule longgf:
@@ -26,6 +28,8 @@ rule longgf:
     output:
         sorted_bam=join(RESULTSDIR,"longgf","{sample}.hq.sorted.bam"),
         log=join(RESULTSDIR,"longgf","{sample}.log")
+    envmodules:
+        TOOLS["samtools"]
     params:
         gtf=config[gencode_version]['gtf']
     shell:
@@ -52,7 +56,7 @@ rule pull_fusion:
     shell:
         """
         # Get list of EWSR1 fusion transcript IDs
-        grep 'EWSR1' {input.breakpoints} | cut -f12 | cut -f1 -d";" | sed 's/\,/\n/g' | sed 's/RN\=//g' > {output.ids}
+        grep 'EWSR1' {input.breakpoints} | cut -f12 | cut -f1 -d';' | sed 's/\,/\\n/g' | sed 's/RN\=//g' > {output.ids}
         
         # Filter fasta file based on isoform ID
         seqtk subseq {input.cluster} {output.ids} > {output.fasta}
@@ -72,8 +76,6 @@ rule map_fusion:
         TOOLS["samtools"]
     params:
         ref=lambda wildcards: f"{config[wildcards.fusion_genome]['fusion_ref']}",
-    threads: 
-        getthreads("collapse")
     shell:
         """
         # Map fasta to genome using minimap2

@@ -43,3 +43,7 @@ CD99:
     id: "ENSG00000002586.19"
 PURPL: 
     id: "ENSG00000250337.5"
+
+# Tools
+gffread: 
+    /data/khanlab3/gb_omics/software/gffread/gffread
