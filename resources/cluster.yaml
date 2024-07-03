@@ -3,8 +3,8 @@ __default__:
     gres: lscratch:96
     mem: 4g
     threads: 2
-    time: 0:30:00
-    partition: quick
+    time: 00-00:30:00
+    partition: norm
     name: "{rule}.{wildcards}"
     output: "logs/{rule}.${{SLURM_JOBID}}.%j.{wildcards}.out"
     error: "logs/{rule}.${{SLURM_JOBID}}.%j.{wildcards}.err"
@@ -12,9 +12,8 @@ __default__:
 cluster:
     mem: 200g
     threads: 24
-    time: 8:00:00
+    time: 00-08:00:00
     gres: lscratch:500
-    partition: "norm,ccr"
 
 collapse:
     mem: 96g
