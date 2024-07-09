@@ -25,7 +25,7 @@ SCRIPTBASENAME=$(readlink -f $(basename $0))
 # these are relative to the workflows' base folder
 # these are copied into the WORKDIR
 ESSENTIAL_FILES="config/config.yaml config/samples.tsv"
-ESSENTIAL_FOLDERS="workflow/scripts"
+ESSENTIAL_FOLDERS=""
 
 function get_git_commitid_tag() {
   # This function gets the latest git commit id and tag
@@ -350,7 +350,7 @@ function run() {
 
   # Load conda environment
   source myconda
-  mamba activate isoseq
+  mamba activate pacbio
 
   if [ "$1" == "local" ];then
 

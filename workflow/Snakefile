@@ -104,11 +104,11 @@ rule sort_annotation:
     output:
         sorted_gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf")
     params:
-        gtf=config[gencode_version]['gtf']
+        gtf=config[gencode_version]['gtf'],
+        ref=config[gencode_version]['ref']
     shell:
         """
-        pigeon sort {params.gtf} -o {output.sorted_gtf}
-        pigeon index {output.sorted_gtf}
+        pigeon prepare {params.gtf} {params.ref}
         """
 
 rule cluster:
@@ -146,12 +146,13 @@ rule collapse:
     IsoSeq3 mapping and collapse
     """
     input:
-        clustered_hq=join(RESULTSDIR,"cluster","{sample}.clustered.hq.bam")
+        clustered_hq=join(RESULTSDIR,"cluster","{sample}.clustered.hq.bam"),
+        flnc=join(RESULTSDIR,"cluster","{sample}.flnc.bam")
     output:
         collapse=join(RESULTSDIR,"collapse","{sample}.hq.mapped.bam"),
         gff=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.gff"),
         fasta=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.fasta"),
-        abundance=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.abundance.txt")
+        abundance=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.flnc_count.txt")
     params:
         ref=config[gencode_version]['ref'],
     threads: 
@@ -162,7 +163,7 @@ rule collapse:
         pbmm2 align --preset ISOSEQ --sort {input.clustered_hq} {params.ref} {output.collapse} -j {threads}
     
         # Collapse redundant transcripts into unique isoforms via exon structure
-        isoseq3 collapse --do-not-collapse-extra-5exons {output.collapse} {output.gff} -j {threads}
+        isoseq3 collapse --do-not-collapse-extra-5exons {output.collapse} {input.flnc} {output.gff} -j {threads}
         """
 
 rule pigeon:
@@ -171,7 +172,7 @@ rule pigeon:
     """
     input:
         gff=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.gff"),
-        abundance=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.abundance.txt")
+        abundance=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.flnc_count.txt")
     output:
         gff_sorted=join(RESULTSDIR,"classify","{sample}.sorted.gff"),
         classification=join(RESULTSDIR,"classify","{sample}_classification.txt"),
@@ -188,7 +189,7 @@ rule pigeon:
     shell:
         """
         # Sort transcript GFF
-        pigeon sort {input.gff} -o {output.gff_sorted}
+        pigeon prepare {input.gff}
         
         # Classify isoforms
         pigeon classify {output.gff_sorted} {params.gtf} {params.ref} -j {threads} -d {params.outdir} -o {params.sample} \
