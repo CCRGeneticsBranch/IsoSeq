@@ -57,7 +57,7 @@ rule all:
         expand(join(RESULTSDIR,"collapse","{samples}.hq.collapsed.gff"),samples=SAMPLES),
         
         # Pigeon
-        expand(join(RESULTSDIR,"classify","{samples}.sorted.gff"),samples=SAMPLES),
+        expand(join(RESULTSDIR,"classify","{samples}.hq.collapsed.sorted.gff"),samples=SAMPLES),
         expand(join(RESULTSDIR,"classify","{samples}_classification.txt"),samples=SAMPLES),
         expand(join(RESULTSDIR,"classify","{samples}_classification.filtered_lite_classification.txt"),samples=SAMPLES),
         expand(join(RESULTSDIR,"classify","{samples}.saturation.txt"),samples=SAMPLES),
@@ -95,20 +95,6 @@ rule link_ccs:
         """
         ln -s {input.bam} {output.bam}
         ln -s {input.bam}.pbi {output.bam}.pbi
-        """
-
-rule sort_annotation:
-    """ 
-    Sort and index genome annotation file
-    """
-    output:
-        sorted_gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf")
-    params:
-        gtf=config[gencode_version]['gtf'],
-        ref=config[gencode_version]['ref']
-    shell:
-        """
-        pigeon prepare {params.gtf} {params.ref}
         """
 
 rule cluster:
@@ -166,6 +152,22 @@ rule collapse:
         isoseq3 collapse --do-not-collapse-extra-5exons {output.collapse} {input.flnc} {output.gff} -j {threads}
         """
 
+rule sort_annotation:
+    """ 
+    Sort and index genome annotation file
+    """
+    output:
+        sorted_gtf=join(RESULTSDIR,"gencode.{gencode_version}.annotation.sorted.gtf")
+    params:
+        gtf=config[gencode_version]['gtf'],
+        gtf_link=join(RESULTSDIR,os.path.basename(config[gencode_version]['gtf'])),
+        ref=config[gencode_version]['ref']
+    shell:
+        """
+        ln -s {params.gtf} {params.gtf_link}
+        pigeon prepare {params.gtf_link} {params.ref}
+        """
+
 rule pigeon:
     """
     Pigeon classification and filtering
@@ -174,12 +176,13 @@ rule pigeon:
         gff=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.gff"),
         abundance=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.flnc_count.txt")
     output:
-        gff_sorted=join(RESULTSDIR,"classify","{sample}.sorted.gff"),
+        gff_sorted=join(RESULTSDIR,"classify","{sample}.hq.collapsed.sorted.gff"),
         classification=join(RESULTSDIR,"classify","{sample}_classification.txt"),
-        gff_filtered=join(RESULTSDIR,"classify","{sample}.sorted.filtered_lite.gff"),
+        gff_filtered=join(RESULTSDIR,"classify","{sample}.hq.collapsed.sorted.filtered_lite.gff"),
         classification_filtered=join(RESULTSDIR,"classify","{sample}_classification.filtered_lite_classification.txt"),
         saturation=join(RESULTSDIR,"classify","{sample}.saturation.txt")
     params:
+        gff_link=join(RESULTSDIR,"classify","{sample}.hq.collapsed.gff"),
         ref=config[gencode_version]['ref'],
         gtf=join(RESULTSDIR,f"gencode.{gencode_version}.annotation.sorted.gtf"),
         sample="{sample}",
@@ -189,7 +192,8 @@ rule pigeon:
     shell:
         """
         # Sort transcript GFF
-        pigeon prepare {input.gff}
+        ln -s {input.gff} {params.gff_link}
+        pigeon prepare {params.gff_link}
         
         # Classify isoforms
         pigeon classify {output.gff_sorted} {params.gtf} {params.ref} -j {threads} -d {params.outdir} -o {params.sample} \
@@ -204,7 +208,7 @@ rule pigeon:
 
 rule convert_majiq:
     input:
-        gff=join(RESULTSDIR,"classify","{sample}.sorted.filtered_lite.gff"),
+        gff=join(RESULTSDIR,"classify","{sample}.hq.collapsed.sorted.filtered_lite.gff"),
         classification=join(RESULTSDIR,"classify","{sample}_classification.filtered_lite_classification.txt"),
     output:
         gtf=join(RESULTSDIR,"majiq","{sample}.sorted.filtered_lite.gtf"),
@@ -213,12 +217,11 @@ rule convert_majiq:
     envmodules:
         TOOLS["R"]
     params:
-        gffread=config['gffread'],
         rscript=join(SCRIPTSDIR,"convert_gtf_majiq.R")
     shell:
         """
         # Convert GFF to GTF using gffread
-        {params.gffread} -E {input.gff} -T -o {output.gtf}
+        gffread -E {input.gff} -T -o {output.gtf}
 
         Rscript {params.rscript} {output.gtf} {input.classification} {output.gtf_attr} {output.counts}
         """
