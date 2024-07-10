@@ -5,7 +5,7 @@ rule pull_genes:
     input:
         fasta=join(RESULTSDIR,"collapse","{sample}.hq.collapsed.fasta"), # Full fasta headers per isoform
         classification_filtered=join(RESULTSDIR,"classify","{sample}_classification.filtered_lite_classification.txt"),
-        gff=join(RESULTSDIR,"classify","{sample}.sorted.filtered_lite.gff")
+        gff=join(RESULTSDIR,"classify","{sample}.hq.collapsed.sorted.filtered_lite.gff")
     output:
         classification=join(RESULTSDIR,"genes_of_interest","{sample}.{gene}.classification.filtered_lite_classification.txt"),
         gff=join(RESULTSDIR,"genes_of_interest","{sample}.{gene}.sorted.filtered_lite.gff"),
