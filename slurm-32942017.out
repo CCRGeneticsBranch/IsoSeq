@@ -1,0 +1,78 @@
+| 20240812 15:36:25.523 | INFO | Effective commandline : cluster2 config/flnc.fofn ../isoseq_updated/results/clustered.bam
+| 20240812 15:36:25.523 | INFO | Version               : 4.0.0 (commit v4.0.0)
+| 20240812 15:36:25.523 | INFO | Options 
+| 20240812 15:36:25.523 | INFO | - CPU threads         : 56
+| 20240812 15:36:25.523 | INFO | - Sorting threads     : 56
+| 20240812 15:36:25.523 | INFO | - Kmer size           : 17
+| 20240812 15:36:25.523 | INFO | - Merge rounds        : 2
+| 20240812 15:36:25.523 | INFO | - 5' overhang         : 100
+| 20240812 15:36:25.523 | INFO | - 3' overhang         : 30
+| 20240812 15:36:25.523 | INFO | - 5' errors           : 5
+| 20240812 15:36:25.523 | INFO | - 3' errors           : 10
+| 20240812 15:36:25.523 | INFO | - 5' non-match window : 10
+| 20240812 15:36:25.523 | INFO | - 3' non-match window : 10
+| 20240812 15:36:25.523 | INFO | - Max gaps            : 5
+| 20240812 15:36:25.523 | INFO | - Gap window          : 20
+| 20240812 15:36:25.523 | INFO | - Max consensus cov   : 50
+| 20240812 15:36:25.523 | INFO | - Deduplicate         : True
+| 20240812 15:36:25.523 | INFO | - Break clusters      : True
+| 20240812 15:36:25.523 | INFO | - Break consensus     : True
+| 20240812 15:36:25.523 | INFO | - Output singletons   : False
+| 20240812 15:36:25.523 | INFO | - POA intermediate    : False
+| 20240812 15:36:25.523 | INFO | - POA final           : True
+| 20240812 15:36:25.523 | INFO | - Use QVs for POA     : False
+| 20240812 15:36:25.523 | INFO | Temp file name        : /tmp/tmp.2002905.bam
+| 20240812 15:36:25.560 | INFO | Get offsets
+| 20240812 15:37:27.894 | INFO | Get offsets           : 1m 2s 
+| 20240812 15:37:27.895 | INFO | Consolidate offsets
+| 20240812 15:37:27.989 | INFO | Consolidate offsets   : 94ms 523us 
+| 20240812 15:37:27.989 | INFO | Sorting
+| 20240812 15:37:28.463 | INFO | Sorting               : 473ms 707us 
+| 20240812 15:37:28.565 | INFO | Write sorted
+| 20240812 15:39:45.448 | INFO | Write sorted          : 2m 16s 
+| 20240812 15:39:45.477 | INFO | Dedup
+| 20240812 15:40:03.628 | INFO | Dedup                 : 18s 150ms 
+| 20240812 15:40:03.800 | INFO | Clustering
+| 20240812 15:41:07.785 | INFO | Clustering            : 1m 3s 
+| 20240812 15:41:08.974 | INFO | Merge clusters
+| 20240812 15:41:16.944 | INFO | Clustering            : 7s 969ms 
+| 20240812 15:41:16.983 | INFO | Break coarse clusters
+| 20240812 15:45:02.965 | INFO | Break coarse clusters : 3m 45s 
+| 20240812 15:45:03.084 | INFO | Break again
+| 20240812 15:47:06.607 | INFO | Break again           : 2m 3s 
+| 20240812 15:47:06.717 | INFO | Consensus
+| 20240812 15:48:14.181 | INFO | Consensus             : 1m 7s 
+| 20240812 15:48:14.374 | INFO | Sketch clusters
+| 20240812 15:48:22.649 | INFO | Sketch clusters       : 8s 274ms 
+| 20240812 15:48:26.569 | INFO | Map back
+| 20240812 15:57:55.053 | INFO | Map back              : 9m 28s 
+| 20240812 15:57:56.011 | INFO | Merge clusters
+| 20240812 15:57:58.892 | INFO | Clustering            : 2s 881ms 
+| 20240812 15:57:58.930 | INFO | Map back, break
+| 20240812 16:02:03.599 | INFO | Map back, break       : 4m 4s 
+| 20240812 16:02:06.208 | INFO | Merge clusters
+| 20240812 16:02:08.023 | INFO | Clustering            : 1s 814ms 
+| 20240812 16:02:08.031 | INFO | Map back, merge
+| 20240812 16:02:08.637 | INFO | Map back, merge       : 606ms 2us 
+| 20240812 16:02:08.638 | INFO | Consensus
+| 20240812 16:03:14.337 | INFO | Consensus             : 1m 5s 
+| 20240812 16:03:18.808 | INFO | Sketch clusters
+| 20240812 16:03:26.558 | INFO | Sketch clusters       : 7s 749ms 
+| 20240812 16:03:31.063 | INFO | Map back
+| 20240812 16:10:37.728 | INFO | Map back              : 7m 6s 
+| 20240812 16:10:38.683 | INFO | Merge clusters
+| 20240812 16:10:41.796 | INFO | Clustering            : 3s 113ms 
+| 20240812 16:10:41.826 | INFO | Map back, break
+| 20240812 16:11:57.185 | INFO | Map back, break       : 1m 15s 
+| 20240812 16:11:59.124 | INFO | Merge clusters
+| 20240812 16:12:00.888 | INFO | Clustering            : 1s 764ms 
+| 20240812 16:12:00.889 | INFO | Map back, merge
+| 20240812 16:12:01.507 | INFO | Map back, merge       : 617ms 799us 
+| 20240812 16:12:01.508 | INFO | Consensus
+| 20240812 16:45:42.856 | INFO | Consensus             : 33m 41s 
+| 20240812 16:45:42.967 | INFO | Write transcript BAM
+| 20240812 16:46:03.218 | INFO | Write transcript BAM  : 20s 251ms 
+| 20240812 16:46:05.870 | INFO | Remove temp file      : 1s 883ms 
+| 20240812 16:46:05.870 | INFO | Run Time              : 1h 9m 
+| 20240812 16:46:05.870 | INFO | CPU Time              : 2d 2h 
+| 20240812 16:46:05.870 | INFO | Peak RSS              : 40.577812 GB
