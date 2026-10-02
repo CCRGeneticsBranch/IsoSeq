@@ -16,7 +16,7 @@ rule pbfusion:
     shell:
         """
         # Detect fusions
-        pbfusion discover -c 5 -s 10000 -M 0 -t {threads} --bam {input.collapse} --gtf {params.gtf} --output-prefix {params.outdir}
+        pbfusion discover -c 5 -s 10000 -M 0 -t {threads} --gtf {params.gtf} --output-prefix {params.outdir} {input.collapse}
         """
 
 rule longgf:

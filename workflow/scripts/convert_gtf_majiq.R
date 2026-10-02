@@ -4,13 +4,12 @@
 
 library(stringr)
 
-# Read in sample name
+# Read in files
 args = commandArgs(trailingOnly=TRUE)
 gtf_file = args[1]
 classification_file = args[2]
 out_gtf = args[3]
 out_counts = args[4]
-sample = args[1]
 
 # Read in GTF
 gtf = read.table(gtf_file,sep='\t',quote="")
@@ -19,7 +18,7 @@ print("Read GTF")
 # Read in classification table
 classification = read.table(classification_file,sep='\t',header=TRUE)
 classification = classification[,c("isoform","structural_category","associated_gene","associated_transcript",
-                                   "FL","fl_assoc")]
+                                   "fl_assoc")]
 print("Read classification table")
 
 # Get isoform ID from gtf

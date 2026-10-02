@@ -5,7 +5,7 @@
 PIPELINE_NAME="IsoSeq"
 PIPELINE_DESCRIPTION="run the PacBio IsoSeq pipeline"
 PIPELINE_SBATCH_SETUP='source myconda || { echo "ERROR: myconda not found; the isoseq conda environment is required" >&2; exit 1; }
-mamba activate isoseq || { echo "ERROR: could not activate the isoseq conda environment" >&2; exit 1; }'
+mamba activate pacbio || { echo "ERROR: could not activate the isoseq conda environment" >&2; exit 1; }'
 
 PIPELINE_HOME="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 if [[ ! -f "${PIPELINE_HOME}/bin/launcher.sh" ]]; then
