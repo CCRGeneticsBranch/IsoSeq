@@ -17,14 +17,14 @@ gencode_version: v28
 
 v28:
     ref:
-        /vf/users/khanlab3/gb_omics/resources/genomes/gencode_human_28/GRCh38.primary_assembly.genome.fa
+        /data/khanlab3/gb_omics/resources/genomes/gencode_human_28/GRCh38.primary_assembly.genome.fa
     gtf:
-        /vf/users/khanlab3/gb_omics/resources/gencode/gencode.v28.annotation.gtf
+        /data/khanlab3/gb_omics/resources/gencode/gencode.v28.annotation.gtf
 v41:
     ref:
-        /vf/users/khanlab3/gb_omics/resources/genomes/gencode_human_41/GRCh38.primary_assembly.genome.fa
+        /data/khanlab3/gb_omics/resources/genomes/gencode_human_41/GRCh38.primary_assembly.genome.fa
     gtf:
-        /vf/users/khanlab3/gb_omics/resources/gencode/gencode.v41.annotation.gtf 
+        /data/khanlab3/gb_omics/resources/gencode/gencode.v41.annotation.gtf 
 
 # Custom fusion reference
 fusion_genome: [ewsr1_fli1, ewsr1_erg]

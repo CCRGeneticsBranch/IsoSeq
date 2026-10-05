@@ -1,14 +1,3 @@
 Sample	CCS
-Sample_1_Neg_TC32	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS027205_4RNA_08052020/Sample_1_Neg_1_2_3/1_Neg_1_2_3.ccs.bam
-Sample_2_HNRNPH1_TC32	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS027205_4RNA_08052020/Sample_2_HNRNPH1_1_2_3/2_HNRNPH1_1_2_3.ccs.bam
-Sample_3_FLI1_TC32	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS027205_4RNA_08052020/Sample_3_FLI1_1_2_3/3_FLI1_1_2_3.ccs.bam
-Sample_4_SF3B1_TC32	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS027205_4RNA_08052020/Sample_4_SF3B1_1_2_3/4_SF3B1_1_2_3.ccs.bam
-Sample_1_Neg_A673	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS029948_6RNA_080421/Sample_1_Neg_1_2_3/1_Neg_1_2_3.ccs.bam
-Sample_2_HNRNPH1_A673	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS029948_6RNA_080421/Sample_2_HNRNPH1_1_2_3/2_HNRNPH1_1_2_3.ccs.bam
-Sample_3_FLI1_A673	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS029948_6RNA_080421/Sample_3_FLI1_1_2_3/3_FLI1_1_2_3.ccs.bam
-Sample_4_Neg_HEK293T	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS029948_6RNA_080421/Sample_4_Neg_1_2_3/4_Neg_1_2_3.ccs.bam
-Sample_5_HNRNPH1_HEK293T	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS029948_6RNA_080421/Sample_5_HNRNPH1_1_2_3/5_HNRNPH1_1_2_3.ccs.bam
-Sample_6_FLI1_HEK293T	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS029948_6RNA_080421/Sample_6_FLI1_1_2_3/6_FLI1_1_2_3.ccs.bam
-Sample_1_Neg_ES5838	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS034615_3RNA_062023/Sample_1_Neg_1_2_1_3/1_Neg_1_2_1_3.hifi.bam
-Sample_2_ERG_ES5838	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS034615_3RNA_062023/Sample_2_ERG_1_2_4_5/2_ERG_1_2_4_5.hifi.bam
-Sample_3_HNRNPH1_ES5838	/data/khanlab3/gb_omics/projects/caplen/ccrgb_13/raw/CS034615_3RNA_062023/Sample_3_HNRNPH1_1_2_3/3_HNRNPH1_1_2_3.hifi.bam
+sample1	/path/to/sample1.ccs.bam
+sample2	/path/to/sample2.ccs.bam
