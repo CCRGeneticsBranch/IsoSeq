@@ -1,5 +1,3 @@
-# References
-
 workdir:
     WORKDIR
 manifest:
@@ -20,11 +18,29 @@ v28:
         /data/khanlab3/gb_omics/resources/genomes/gencode_human_28/GRCh38.primary_assembly.genome.fa
     gtf:
         /data/khanlab3/gb_omics/resources/gencode/gencode.v28.annotation.gtf
+    genes_of_interest:
+        EWSR1:
+            id: "ENSG00000182944.17"
+        FLI1:
+            id: "ENSG00000151702.16"
+        CD99:
+            id: "ENSG00000002586.19"
+        PURPL:
+            id: "ENSG00000250337.5"
 v41:
     ref:
         /data/khanlab3/gb_omics/resources/genomes/gencode_human_41/GRCh38.primary_assembly.genome.fa
     gtf:
         /data/khanlab3/gb_omics/resources/gencode/gencode.v41.annotation.gtf 
+    genes_of_interest:
+        EWSR1:
+            id: "ENSG00000182944.18"
+        FLI1:
+            id: "ENSG00000151702.18"
+        CD99:
+            id: "ENSG00000002586.20"
+        PURPL:
+            id: "ENSG00000250337.9"
 
 # Custom fusion reference
 fusion_genome: [ewsr1_fli1, ewsr1_erg]
@@ -36,13 +52,6 @@ ewsr1_erg:
     fusion_ref:
         PIPELINE_HOME/resources/fusion_genome/ewsr1_erg.fa
 
-# Genes of interest
+# Genes of interest to extract; IDs are specified by Gencode release above
+# Note: In GENCODE v28, `ENSG00000250337.5` is annotated as `RP11-46C20.1`; in v41, the updated ID is annotated as `PURPL`
 genes_of_interest: [EWSR1, FLI1]
-EWSR1: 
-    id: "ENSG00000182944.17"
-FLI1: 
-    id: "ENSG00000151702.16"
-CD99: 
-    id: "ENSG00000002586.19"
-PURPL: 
-    id: "ENSG00000250337.5"

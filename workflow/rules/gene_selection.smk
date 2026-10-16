@@ -22,7 +22,7 @@ rule pull_genes:
     params:
         ref=config[gencode_version]['ref'],
         rscript=join(SCRIPTSDIR,"pull_gff_classification.R"),
-        gene_id=lambda wildcards: f"{config[wildcards.gene]['id']}", # Gene ID
+        gene_id=lambda wildcards: f"{config[gencode_version]['genes_of_interest'][wildcards.gene]['id']}",
     threads: 
         getthreads("pull_genes")
     shell:
